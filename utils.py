@@ -29,7 +29,7 @@ def get_random_books():
   print(type(date_range[0]))
   return frame
 
-
+@lru_cache(None)
 def ORM_random_fill():
   books_frame = get_random_books()
   with GlobalSession.session as session:

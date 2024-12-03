@@ -6,7 +6,7 @@ export default class App extends React.Component<any, any> {
     super(props);
     this.state = {
       books: [],
-      categories: {},
+      categories: [],
       page: 1,
       sorted_by: 'title',
       order: 'asc'
@@ -23,14 +23,18 @@ export default class App extends React.Component<any, any> {
   }
   updateInfo = () => {
     const limit = 10;
-    const offset = this.state.page * limit;
+    const offset = (this.state.page - 1) * limit;
     fetch(`/api/books?limit=${limit}&offset=${offset}&sorted_by=${this.state.sorted_by}&order=${this.state.order}`).then((response) => response.json()).then((data) => {
       this.setState({ books: data });
       console.log(data);
     });
     fetch('/api/categories/').then((response) => response.json()).then((data) => {
+      // for (let category of data) {
+      //   this.state.categories[category.id] = category.name;
+      // }
+      // this.setState({});
+      // console.log(data);
       this.setState({ categories: data });
-      console.log(data);
     });
   }
   render() {
@@ -60,14 +64,14 @@ export default class App extends React.Component<any, any> {
               <th>Delete</th>
             </thead>
             <tbody className='tbodymini'>
-              {Object.keys(this.state.categories).map((category: any) => {
+              {this.state.categories.map((category: any) => {
                 return (
-                  <tr key={category}>
-                    <th>{this.state.categories[category]}</th>
+                  <tr key={category.id}>
+                    <th>{category.name}</th>
                     <th><button onClick={() => {
-                      fetch(`/api/categories/${category}`, {
+                      fetch(`/api/categories/${category.id}`, {
                         method: 'DELETE',
-                      }).then(() => {
+                      }).then((data: any) => {
                         this.updateInfo();
                       });
                     }}>Delete</button></th>
@@ -80,6 +84,40 @@ export default class App extends React.Component<any, any> {
 
         </div>
         <div className="main">
+          <div className="addBook">
+            <form action='/api/books' method='POST' onSubmit={(event) => {
+              event.preventDefault();
+              const form = event.target as HTMLFormElement;
+              const data = {
+                title: (form.elements.namedItem('title') as HTMLInputElement).value,
+                author: (form.elements.namedItem('author') as HTMLInputElement).value,
+                category_id: Number((form.elements.namedItem('category_id') as HTMLSelectElement).value)
+              };
+              console.log(data);
+              fetch('/api/books', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+              }).then(() => {
+                this.updateInfo();
+              });
+              }}>
+              <h2>Add book:</h2>
+              <input type='text' name='title' placeholder='Title' />
+              <input type='text' name='author' placeholder='Author' />
+              <select name='category_id'>
+                {this.state.categories.map((category: any) => {
+                  return (
+                    <option key={category.id} value={category.id}>{category.name}</option>
+                  );
+                })}
+              </select>
+              <button type='submit'>Add</button>
+            </form>
+
+          </div>
           <div className="sortby">
             <h2>Sort by:</h2>
             <div>
@@ -132,9 +170,9 @@ export default class App extends React.Component<any, any> {
                         book.category_id = event.target.value
                         this.setState({})
                       }}>
-                        {Object.keys(this.state.categories).map((category: any) => {
+                        {this.state.categories.map((category: any) => {
                           return (
-                            <option key={category} value={category}>{this.state.categories[category]}</option>
+                            <option key={category.id} value={category.id}>{category.name}</option>
                           );
                         })}
                       </select>
@@ -154,7 +192,10 @@ export default class App extends React.Component<any, any> {
                           'Content-Type': 'application/json'
                         },
                         body: JSON.stringify(data)
-                      })
+                      }).then(() => {
+                        this.updateInfo();
+                      }
+                      );
                     }
                     }>Confirm</button></th>
                     <th><button onClick={() => {
